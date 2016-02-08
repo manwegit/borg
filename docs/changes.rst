@@ -1,8 +1,27 @@
 Changelog
 =========
 
+
 Version 1.0.0 (not released yet)
 --------------------------------
+
+Other changes:
+
+- it is now possible to use "pip install borgbackup[fuse]" to automatically
+  install the llfuse dependency using the correct version requirement
+  for it. you still need to care about having installed the FUSE / build
+  related OS package first, though, so that building llfuse can succeed.
+
+- docs:
+ 
+  - borg upgrade also handles borg 0.xx -> 1.0
+  - use pip extras or requirements file to install llfuse
+  - fix order in release process
+  - updated usage docs and other minor / cosmetic fixes
+
+
+Version 1.0.0rc1
+----------------
 
 The major release number change (0.x -> 1.x) indicates bigger incompatible
 changes, please read the compatibility notes, adapt / test your scripts and
@@ -18,19 +37,19 @@ Compatibility notes:
   you can either move them manually or run "borg upgrade <REPO>"
 - remove support for --encryption=passphrase,
   use borg migrate-to-repokey to switch to repokey mode, #97
-- remove deprecated "--compression <number>",
+- remove deprecated --compression <number>,
   use --compression zlib,<number> instead
   in case of 0, you could also use --compression none
-- remove deprecated "--hourly/daily/weekly/monthly/yearly"
+- remove deprecated --hourly/daily/weekly/monthly/yearly
   use --keep-hourly/daily/weekly/monthly/yearly instead
-- remove deprecated "--do-not-cross-mountpoints",
+- remove deprecated --do-not-cross-mountpoints,
   use --one-file-system instead
 - disambiguate -p option, #563:
 
   - -p now is same as --progress
   - -P now is same as --prefix  
 - remove deprecated "borg verify",
-  use borg extract --dry-run instead
+  use "borg extract --dry-run" instead
 - cleanup environment variable semantics, #355
   the environment variables used to be "yes sayers" when set, this was
   conceptually generalized to "automatic answerers" and they just give their
@@ -59,20 +78,28 @@ Compatibility notes:
   --chunker-params option at all) and you'ld like to continue using small
   chunks (and you accept the huge resource usage that comes with that), just
   explicitly use borg create --chunker-params=10,23,16,4095.
+- archive timestamps: the 'time' timestamp now refers to archive creation
+  start time (was: end time), the new 'time_end' timestamp refers to archive
+  creation end time. This might affect prune if your backups take rather long.
+  if you give a timestamp via cli this is stored into 'time', therefore it now
+  needs to mean archive creation start time.
 
 New features:
 
 - borg migrate-to-repokey ("passphrase" -> "repokey" encryption key mode)
-- implement --short for borg list REPO, fixes #611
+- implement --short for borg list REPO, #611
 - implement --list for borg extract (consistency with borg create)
 - borg serve: overwrite client's --restrict-to-path with ssh forced command's
   option value (but keep everything else from the client commandline), #544
 - use $XDG_CONFIG_HOME/keys for keyfile keys (~/.config/borg/keys), #515
 - "borg upgrade" moves the keyfile keys to the new location
+- display both archive creation start and end time in "borg info", #627
+
 
 Bug fixes:
 
 - normalize trailing slashes for the repository path, #606
+- Cache: fix exception handling in __init__, release lock, #610
 
 Other changes:
 
@@ -83,7 +110,7 @@ Other changes:
   newer did not support py 3.2 any more
 - use some py 3.4+ stdlib code instead of own/openssl/pypi code:
 
-  - use os.urandom instead of own cython openssl RAND_bytes wrapper, fixes #493
+  - use os.urandom instead of own cython openssl RAND_bytes wrapper, #493
   - use hashlib.pbkdf2_hmac from py stdlib instead of own openssl wrapper
   - use hmac.compare_digest instead of == operator (constant time comparison)
   - use stat.filemode instead of homegrown code
@@ -99,6 +126,9 @@ Other changes:
   - quote exclude line that includes an asterisk to prevent shell expansion
   - fix dead link to license
   - delete Ubuntu Vivid, it is not supported anymore (EOL)
+  - OS X binary does not work for older OS X releases, #629
+  - borg serve's special support for forced/original ssh commands, #544
+  - misc. updates and fixes
 
 
 Version 0.30.0

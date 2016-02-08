@@ -34,14 +34,16 @@ borg upgrade
 Description
 ~~~~~~~~~~~
 
-Upgrade an existing Borg repository. This currently
-only supports converting an Attic repository, but may
-eventually be extended to cover major Borg upgrades as well.
+Upgrade an existing Borg repository.
+This currently supports converting an Attic repository to Borg and also
+helps with converting Borg 0.xx to 1.0.
+
+Currently, only LOCAL repositories can be upgraded (issue #465).
 
 It will change the magic strings in the repository's segments
 to match the new Borg magic strings. The keyfiles found in
 $ATTIC_KEYS_DIR or ~/.attic/keys/ will also be converted and
-copied to $BORG_KEYS_DIR or ~/.borg/keys.
+copied to $BORG_KEYS_DIR or ~/.config/borg/keys.
 
 The cache files are converted, from $ATTIC_CACHE_DIR or
 ~/.cache/attic to $BORG_CACHE_DIR or ~/.cache/borg, but the
