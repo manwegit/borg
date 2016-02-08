@@ -210,7 +210,10 @@ class Archiver:
             compr_args.update(args.compression)
             key.compressor = Compressor(**compr_args)
             with Cache(repository, key, manifest, do_files=args.cache_files, lock_wait=self.lock_wait) as cache:
-                archive = Archive(repository, key, manifest, args.location.archive, cache=cache,
+                if args.generate_archive_postfix:
+                    args.location.archive += t0.strftime("_%s")
+                archive_name = args.location.archive
+                archive = Archive(repository, key, manifest, archive_name, cache=cache,
                                   create=True, checkpoint_interval=args.checkpoint_interval,
                                   numeric_owner=args.numeric_owner, progress=args.progress,
                                   chunker_params=args.chunker_params, start=t0)
@@ -961,6 +964,9 @@ class Archiver:
         subparser.add_argument('--keep-tag-files', dest='keep_tag_files',
                                action='store_true', default=False,
                                help='keep tag files of excluded caches/directories')
+        subparser.add_argument('--generate-archive-postfix', dest='generate_archive_postfix',
+                               action='store_true', default=False,
+                               help='add automatic timestamp postfix to archive name')
         subparser.add_argument('-c', '--checkpoint-interval', dest='checkpoint_interval',
                                type=int, default=300, metavar='SECONDS',
                                help='write checkpoint every SECONDS seconds (Default: 300)')
