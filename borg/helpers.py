@@ -519,6 +519,29 @@ def dir_is_tagged(path, exclude_caches, exclude_if_present):
     return tag_paths
 
 
+def format_line(format, data):
+    # TODO: Filter out unwanted properties of str.format(), because "format" is user provided.
+
+    try:
+        return format.format(**data)
+    except (KeyError, ValueError) as e:
+        # this should catch format errors
+        print('Error in lineformat: "{}" - reason "{}"'.format(format, str(e)))
+    except:
+        # something unexpected, print error and raise exception
+        print('Error in lineformat: "{}" - reason "{}"'.format(format, str(e)))
+        raise
+    return ''
+
+
+def safe_timestamp(item_timestamp_ns):
+    try:
+        return datetime.fromtimestamp(bigint_to_int(item_timestamp_ns) / 1e9)
+    except OverflowError:
+        # likely a broken file time and datetime did not want to go beyond year 9999
+        return datetime(9999, 12, 31, 23, 59, 59)
+
+
 def format_time(t):
     """use ISO-8601 date and time format
     """
@@ -754,6 +777,14 @@ def location_validator(archive=None):
         elif archive is False and loc.archive:
             raise argparse.ArgumentTypeError('"%s" No archive can be specified' % text)
         return loc
+    return validator
+
+
+def archivename_validator():
+    def validator(text):
+        if '/' in text or '::' in text or not text:
+            raise argparse.ArgumentTypeError('Invalid repository name: "%s"' % text)
+        return text
     return validator
 
 

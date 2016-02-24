@@ -98,14 +98,18 @@ Dependencies
 To install |project_name| from a source package (including pip), you have to install the
 following dependencies first:
 
-* `Python 3`_ >= 3.4.0. Even though Python 3 is not the default Python version on
-  most systems, it is usually available as an optional install.
-* OpenSSL_ >= 1.0.0
-* libacl_ (that pulls in libattr_ also)
-* liblz4_
+* `Python 3`_ >= 3.4.0, plus development headers. Even though Python 3 is not
+  the default Python version on most systems, it is usually available as an
+  optional install.
+* OpenSSL_ >= 1.0.0, plus development headers.
+* libacl_ (that pulls in libattr_ also), both plus development headers.
+* liblz4_, plus development headers.
 * some Python dependencies, pip will automatically install them for you
 * optionally, the llfuse_ Python package is required if you wish to mount an
   archive as a FUSE filesystem. See setup.py about the version requirements.
+
+If you have troubles finding the right package names, have a look at the
+distribution specific sections below and also at the Vagrantfile in our repo.
 
 In the following, the steps needed to install the dependencies are listed for a
 selection of platforms. If your distribution is not covered by these
@@ -158,6 +162,24 @@ For FUSE support to mount the backup archives, you need at least version 3.0 of
 FUSE for OS X, which is available as a pre-release_.
 
 .. _pre-release: https://github.com/osxfuse/osxfuse/releases
+
+
+FreeBSD
+++++++++
+Listed below are packages you will need to install |project_name|, its dependencies,
+and commands to make fuse work for using the mount command.
+
+::
+
+     pkg install -y python3 openssl liblz4 fusefs-libs pkgconf
+     pkg install -y git
+     python3.4 -m ensurepip # to install pip for Python3
+     To use the mount command:
+     echo 'fuse_load="YES"' >> /boot/loader.conf
+     echo 'vfs.usermount=1' >> /etc/sysctl.conf
+     kldload fuse
+     sysctl vfs.usermount=1
+    
 
 Cygwin
 ++++++

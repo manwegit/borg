@@ -65,7 +65,8 @@ General:
     BORG_LOGGING_CONF
         When set, use the given filename as INI_-style logging configuration.
     BORG_RSH
-        When set, use this command instead of ``ssh``.
+        When set, use this command instead of ``ssh``. This can be used to specify ssh options, such as
+        a custom identity file ``ssh -i /path/to/private/key``. See ``man ssh`` for other options.
     TMPDIR
         where temporary files are stored (might need a lot of temporary space for some operations)
 
@@ -259,7 +260,7 @@ Examples
     $ borg create --chunker-params 10,23,16,4095 /mnt/backup::small /smallstuff
 
     # Backup a raw device (must not be active/in use/mounted at that time)
-    $ dd if=/dev/sda bs=10M | borg create /mnt/backup::my-sda -
+    $ dd if=/dev/sdx bs=10M | borg create /mnt/backup::my-sdx -
 
     # No compression (default)
     $ borg create /mnt/backup::repo ~
@@ -291,6 +292,9 @@ Examples
     # Extract the "src" directory but exclude object files
     $ borg extract /mnt/backup::my-files home/USERNAME/src --exclude '*.o'
 
+    # Restore a raw device (must not be active/in use/mounted at that time)
+    $ borg extract --stdout /mnt/backup::my-sdx | dd of=/dev/sdx bs=10M
+
 Note: currently, extract always writes into the current working directory ("."),
       so make sure you ``cd`` to the right place before calling ``borg extract``.
 
@@ -304,14 +308,12 @@ Examples
 
     $ borg create /mnt/backup::archivename ~
     $ borg list /mnt/backup
-    archivename                          Mon Nov  2 20:40:06 2015
+    archivename                          Mon, 2016-02-15 19:50:19
 
     $ borg rename /mnt/backup::archivename newname
     $ borg list /mnt/backup
-    newname                              Mon Nov  2 20:40:06 2015
+    newname                              Mon, 2016-02-15 19:50:19
 
-
-.. include:: usage/delete.rst.inc
 
 .. include:: usage/list.rst.inc
 
@@ -320,19 +322,54 @@ Examples
 ::
 
     $ borg list /mnt/backup
-    my-files            Thu Aug  1 23:33:22 2013
-    my-documents        Thu Aug  1 23:35:43 2013
-    root-2013-08-01     Thu Aug  1 23:43:55 2013
-    root-2013-08-02     Fri Aug  2 15:18:17 2013
+    Monday                               Mon, 2016-02-15 19:15:11
+    repo                                 Mon, 2016-02-15 19:26:54
+    root-2016-02-15                      Mon, 2016-02-15 19:36:29
+    newname                              Mon, 2016-02-15 19:50:19
     ...
 
-    $ borg list /mnt/backup::root-2013-08-02
-    drwxr-xr-x root   root          0 Jun 05 12:06 .
-    lrwxrwxrwx root   root          0 May 31 20:40 bin -> usr/bin
-    drwxr-xr-x root   root          0 Aug 01 22:08 etc
-    drwxr-xr-x root   root          0 Jul 15 22:07 etc/ImageMagick-6
-    -rw-r--r-- root   root       1383 May 22 22:25 etc/ImageMagick-6/colors.xml
+    $ borg list /mnt/backup::root-2016-02-15
+    drwxr-xr-x root   root          0 Mon, 2016-02-15 17:44:27 .
+    drwxrwxr-x root   root          0 Mon, 2016-02-15 19:04:49 bin
+    -rwxr-xr-x root   root    1029624 Thu, 2014-11-13 00:08:51 bin/bash
+    lrwxrwxrwx root   root          0 Fri, 2015-03-27 20:24:26 bin/bzcmp -> bzdiff
+    -rwxr-xr-x root   root       2140 Fri, 2015-03-27 20:24:22 bin/bzdiff
     ...
+
+    $ borg list /mnt/backup::archiveA --list-format="{mode} {user:6} {group:6} {size:8d} {isomtime} {path}{extra}{NEWLINE}"
+    drwxrwxr-x user   user          0 Sun, 2015-02-01 11:00:00 .
+    drwxrwxr-x user   user          0 Sun, 2015-02-01 11:00:00 code
+    drwxrwxr-x user   user          0 Sun, 2015-02-01 11:00:00 code/myproject
+    -rw-rw-r-- user   user    1416192 Sun, 2015-02-01 11:00:00 code/myproject/file.ext
+    ...
+
+    # see what is changed between archives, based on file modification time, size and file path
+    $ borg list /mnt/backup::archiveA --list-format="{mtime:%s}{TAB}{size}{TAB}{path}{LF}" |sort -n > /tmp/list.archiveA
+    $ borg list /mnt/backup::archiveB --list-format="{mtime:%s}{TAB}{size}{TAB}{path}{LF}" |sort -n > /tmp/list.archiveB
+    $ diff -y /tmp/list.archiveA /tmp/list.archiveB
+    1422781200      0       .                                       1422781200      0       .
+    1422781200      0       code                                    1422781200      0       code
+    1422781200      0       code/myproject                          1422781200      0       code/myproject
+    1422781200      1416192 code/myproject/file.ext               | 1454664653      1416192 code/myproject/file.ext
+    ...
+
+
+.. include:: usage/delete.rst.inc
+
+Examples
+~~~~~~~~
+::
+
+    # delete a single backup archive:
+    $ borg delete /mnt/backup::Monday
+
+    # delete the whole repository and the related local cache:
+    $ borg delete /mnt/backup
+    You requested to completely DELETE the repository *including* all archives it contains:
+    repo                                 Mon, 2016-02-15 19:26:54
+    root-2016-02-15                      Mon, 2016-02-15 19:36:29
+    newname                              Mon, 2016-02-15 19:50:19
+    Type 'YES' if you understand this and want to continue: YES
 
 
 .. include:: usage/prune.rst.inc
@@ -340,7 +377,7 @@ Examples
 Examples
 ~~~~~~~~
 
-Be careful, prune is potentially dangerous command, it will remove backup
+Be careful, prune is a potentially dangerous command, it will remove backup
 archives.
 
 The default of prune is to apply to **all archives in the repository** unless
@@ -375,17 +412,22 @@ Examples
 ~~~~~~~~
 ::
 
-    $ borg info /mnt/backup::root-2013-08-02
-    Name: root-2013-08-02
-    Fingerprint: bc3902e2c79b6d25f5d769b335c5c49331e6537f324d8d3badcb9a0917536dbb
+    $ borg info /mnt/backup::root-2016-02-15
+    Name: root-2016-02-15
+    Fingerprint: 57c827621f21b000a8d363c1e163cc55983822b3afff3a96df595077a660be50
     Hostname: myhostname
     Username: root
-    Time: Fri Aug  2 15:18:17 2013
-    Command line: /usr/bin/borg create --stats -C zlib,6 /mnt/backup::root-2013-08-02 / --one-file-system
-    Number of files: 147429
-    Original size: 5344169493 (4.98 GB)
-    Compressed size: 1748189642 (1.63 GB)
-    Unique data: 64805454 (61.80 MB)
+    Time (start): Mon, 2016-02-15 19:36:29
+    Time (end):   Mon, 2016-02-15 19:39:26
+    Command line: /usr/local/bin/borg create -v --list -C zlib,6 /mnt/backup::root-2016-02-15 / --one-file-system
+    Number of files: 38100
+
+                           Original size      Compressed size    Deduplicated size
+    This archive:                1.33 GB            613.25 MB            571.64 MB
+    All archives:                1.63 GB            853.66 MB            584.12 MB
+
+                           Unique chunks         Total chunks
+    Chunk index:                   36858                48844
 
 
 .. include:: usage/mount.rst.inc
@@ -394,9 +436,9 @@ Examples
 ~~~~~~~~
 ::
 
-    $ borg mount /mnt/backup::root-2013-08-02 /tmp/mymountpoint
+    $ borg mount /mnt/backup::root-2016-02-15 /tmp/mymountpoint
     $ ls /tmp/mymountpoint
-    bin  boot  etc  lib  lib64  mnt  opt  root  sbin  srv  usr  var
+    bin  boot  etc	home  lib  lib64  lost+found  media  mnt  opt  root  sbin  srv  tmp  usr  var
     $ fusermount -u /tmp/mymountpoint
 
 
@@ -407,19 +449,24 @@ Examples
 ::
 
     # Create a key file protected repository
-    $ borg init --encryption=keyfile /mnt/backup
+    $ borg init --encryption=keyfile -v /mnt/backup
     Initializing repository at "/mnt/backup"
-    Enter passphrase (empty for no passphrase):
-    Enter same passphrase again: 
-    Key file "/home/USER/.config/borg/keys/mnt_backup" created.
-    Keep this file safe. Your data will be inaccessible without it.
+    Enter new passphrase:
+    Enter same passphrase again:
+    Remember your passphrase. Your data will be inaccessible without it.
+    Key in "/root/.config/borg/keys/mnt_backup" created.
+    Keep this key safe. Your data will be inaccessible without it.
+    Synchronizing chunks cache...
+    Archives: 0, w/ cached Idx: 0, w/ outdated Idx: 0, w/o cached Idx: 0.
+    Done.
 
     # Change key file passphrase
-    $ borg change-passphrase /mnt/backup
-    Enter passphrase for key file /home/USER/.config/borg/keys/mnt_backup:
-    New passphrase: 
-    Enter same passphrase again: 
-    Key file "/home/USER/.config/borg/keys/mnt_backup" updated
+    $ borg change-passphrase -v /mnt/backup
+    Enter passphrase for key /root/.config/borg/keys/mnt_backup:
+    Enter new passphrase:
+    Enter same passphrase again:
+    Remember your passphrase. Your data will be inaccessible without it.
+    Key updated
 
 
 .. include:: usage/serve.rst.inc
@@ -450,7 +497,15 @@ Examples
 ~~~~~~~~
 ::
 
-    borg upgrade -v /mnt/backup
+    # Upgrade the borg repository to the most recent version.
+    $ borg upgrade -v /mnt/backup
+    making a hardlink copy in /mnt/backup.upgrade-2016-02-15-20:51:55
+    opening attic repository with borg and converting
+    no key file found for repository
+    converting repo index /mnt/backup/index.0
+    converting 1 segments...
+    converting borg 0.xx to borg current
+    no key file found for repository
 
 
 Miscellaneous Help
@@ -619,4 +674,3 @@ Now, let's see how to restore some LVs from such a backup. ::
     $ # we assume that you created an empty root and home LV and overwrite it now:
     $ borg extract --stdout /mnt/backup::repo dev/vg0/root-snapshot > /dev/vg0/root
     $ borg extract --stdout /mnt/backup::repo dev/vg0/home-snapshot > /dev/vg0/home
-

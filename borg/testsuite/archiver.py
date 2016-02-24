@@ -835,7 +835,7 @@ class ArchiverTestCase(ArchiverTestCaseBase):
         self.cmd('init', self.repository_location)
         self.cmd('create', self.repository_location + '::test1', src_dir)
         self.cmd('create', self.repository_location + '::test2', src_dir)
-        output = self.cmd('prune', '-v', '--dry-run', self.repository_location, '--keep-daily=2')
+        output = self.cmd('prune', '-v', '--list', '--dry-run', self.repository_location, '--keep-daily=2')
         self.assert_in('Keeping archive: test2', output)
         self.assert_in('Would prune:     test1', output)
         output = self.cmd('list', self.repository_location)
@@ -850,7 +850,7 @@ class ArchiverTestCase(ArchiverTestCaseBase):
         self.cmd('init', self.repository_location)
         self.cmd('create', self.repository_location + '::test1', src_dir)
         self.cmd('create', self.repository_location + '::test2', src_dir)
-        output = self.cmd('prune', '-v', '--dry-run', self.repository_location, '--keep-daily=2')
+        output = self.cmd('prune', '-v', '--list', '--dry-run', self.repository_location, '--keep-daily=2')
         self.assert_in('Keeping archive: test2', output)
         self.assert_in('Would prune:     test1', output)
         output = self.cmd('list', self.repository_location)
@@ -867,7 +867,7 @@ class ArchiverTestCase(ArchiverTestCaseBase):
         self.cmd('create', self.repository_location + '::foo-2015-08-12-20:00', src_dir)
         self.cmd('create', self.repository_location + '::bar-2015-08-12-10:00', src_dir)
         self.cmd('create', self.repository_location + '::bar-2015-08-12-20:00', src_dir)
-        output = self.cmd('prune', '-v', '--dry-run', self.repository_location, '--keep-daily=2', '--prefix=foo-')
+        output = self.cmd('prune', '-v', '--list', '--dry-run', self.repository_location, '--keep-daily=2', '--prefix=foo-')
         self.assert_in('Keeping archive: foo-2015-08-12-20:00', output)
         self.assert_in('Would prune:     foo-2015-08-12-10:00', output)
         output = self.cmd('list', self.repository_location)
@@ -891,6 +891,16 @@ class ArchiverTestCase(ArchiverTestCaseBase):
         self.assert_in('test-1', output)
         self.assert_in('test-2', output)
         self.assert_not_in('something-else', output)
+
+    def test_list_list_format(self):
+        self.cmd('init', self.repository_location)
+        test_archive = self.repository_location + '::test'
+        self.cmd('create', test_archive, src_dir)
+        output_1 = self.cmd('list', test_archive)
+        output_2 = self.cmd('list', '--list-format', '{mode} {user:6} {group:6} {size:8d} {isomtime} {path}{extra}{NEWLINE}', test_archive)
+        output_3 = self.cmd('list', '--list-format', '{mtime:%s} {path}{NL}', test_archive)
+        self.assertEqual(output_1, output_2)
+        self.assertNotEqual(output_1, output_3)
 
     def test_break_lock(self):
         self.cmd('init', self.repository_location)
