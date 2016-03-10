@@ -835,6 +835,9 @@ class Archiver:
                                           description=self.do_serve.__doc__, epilog=serve_epilog,
                                           formatter_class=argparse.RawDescriptionHelpFormatter,
                                           help='start repository server process')
+        subparser.add_argument('location', metavar='REPOSITORY', nargs='?', default='',
+                               type=location_validator(archive=False),
+                               help='repository location for serve')
         subparser.set_defaults(func=self.do_serve)
         subparser.add_argument('--restrict-to-path', dest='restrict_to_paths', action='append',
                                metavar='PATH', help='restrict repository access to PATH')

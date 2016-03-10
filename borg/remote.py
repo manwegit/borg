@@ -184,6 +184,8 @@ class RemoteRepository:
                 pass  # warning is default
             else:
                 raise ValueError('log level missing, fix this code')
+            if args.location is not None:
+                opts.append(args.location.canonical_path())
         if testing:
             return [sys.executable, '-m', 'borg.archiver', 'serve'] + opts + self.extra_test_args
         else:  # pragma: no cover
